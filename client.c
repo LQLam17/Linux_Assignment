@@ -131,14 +131,14 @@ void app_feature_create_new_account(){
     account_t client_account_buffer = {0};
     while(1){
         memset(client_account_buffer.user, 0, sizeof(client_account_buffer.user));
-        printf("Enter your user: ");
+        printf("Enter your user (length < 10): ");
         scanf("%s", client_account_buffer.user);
         if(strncmp(client_account_buffer.user, ":q", 2) == 0){
             break;
         }
 
         memset(client_account_buffer.password, 0, sizeof(client_account_buffer.password));
-        printf("Enter your password: ");
+        printf("Enter your password (length < 10): ");
         scanf("%s", client_account_buffer.password);
         if(strncmp(client_account_buffer.password, ":q", 2) == 0){
             break;

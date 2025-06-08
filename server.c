@@ -18,8 +18,7 @@
 int count = 0;
 int main_menu_option_number = 0;
 
-//Message structure//////////////////////////////////////////////////////////////////////
-
+//=======================================Message structure=================================================================
 typedef enum{
     SEND_MSG,
     INITIALISE_ID,
@@ -41,22 +40,22 @@ typedef struct {
     msg_cmd_t cmd;
     char payload[100];
 }msg_t;
+//=========================================================================================================================
 
-//////////////////////////////////////////////////////////////////////////////////////////
 
-
-//Account structure///////////////////////////////////////////////////////////////////////
+//=======================================Account structure=================================================================
 typedef struct {
     char user[10];
     char password[10];
     int id;
     int fd;
 }account_t;
-//////////////////////////////////////////////////////////////////////////////////////////
+//=========================================================================================================================
 
 account_t client_account[MAX_CLIENT];          //registered account
 account_t login_client_account[MAX_CLIENT];    //logged in account
 
+//An array contains file name which stores messages of 2 users
 char *chat_file[MAX_CHAT_FILE] = {0};
 
 pthread_t client_accept_thread;
@@ -66,9 +65,10 @@ void *client_handle(void *arg);
 void *client_accept(void *arg);
 
 
-//Acount handle functions//////////////////////////////////////////////////////////////////
-
-//return 1: account exist
+//========================================Acount handle functions==========================================================
+/**
+ * Return 1 if account has been registered
+ */
 int account_user_available(char *user){
     if(strlen(user) <= 0){
         return -1;
@@ -81,6 +81,9 @@ int account_user_available(char *user){
     return 0;
 }
 
+/**
+ * Add the account to the registered account list
+ */
 void account_add(account_t *account){
     for(int i = 0; i < MAX_CLIENT; i++){
         if(strlen(client_account[i].user) <= 0){
@@ -90,6 +93,9 @@ void account_add(account_t *account){
     }
 }
 
+/**
+ * Show all the id of logged in account
+ */
 void login_account_show(){
     int count = 0;
     for(int i = 0; i < MAX_CLIENT; i++){
@@ -107,6 +113,9 @@ void login_account_show(){
     }
 }
 
+/**
+ * Return logged in account quantity
+ */
 int login_account_count(){
     int count = 0;
     for(int i = 0; i < MAX_CLIENT; i++){
@@ -121,6 +130,9 @@ int login_account_count(){
     return count;
 }
 
+/**
+ * Return 1 if account has been logged in
+ */
 int login_account_user_available(char *user){
     if(strlen(user) <= 0){
         return -1;
@@ -133,6 +145,9 @@ int login_account_user_available(char *user){
     return 0;
 }
 
+/**
+ * Add account to the logged in account list
+ */
 int login_account_add(char *user, char *password){
     int client_account_index = -1;
     for(int i = 0; i < MAX_CLIENT; i++){
@@ -156,7 +171,9 @@ int login_account_add(char *user, char *password){
     return -1;
 }
 
-
+/**
+ * Remove an account from the logged in account list
+ */
 void login_account_logout(int id){
     for(int i = 0; i < MAX_CLIENT; i++){
         if(login_client_account[i].id == id){
@@ -172,7 +189,9 @@ void login_account_logout(int id){
     login_account_show();
 }
 
-
+/**
+ * Send message to client
+ */
 void send_msg_to_client(int fd, int sender_id, int receiver_id, msg_cmd_t cmd, char *payload){
     msg_t buffer;
     buffer.cmd = cmd;
@@ -186,7 +205,11 @@ void send_msg_to_client(int fd, int sender_id, int receiver_id, msg_cmd_t cmd, c
 }
 
 
-//return 1 if success
+/**
+ * This function is to determine whether the account has been registered, if not it will register the account.
+ * parameters: char *buffer: point to an array containing user \n password.
+ * return: 0 if account's been registered, an id assigned for account if register successfully.
+ */
 int receive_register_account(char *buffer){
     char *pos = strchr(buffer, '\n');  
     int return_value = 0;
@@ -220,6 +243,9 @@ int receive_register_account(char *buffer){
     return return_value;
 }
 
+/**
+ * return: 0 if the account hasn't been registered or logged in, return user's id if account logged in successfully.
+ */
 int receive_login_account(char *buffer){
     char *pos = strchr(buffer, '\n');  
     if (pos != NULL) {
@@ -244,7 +270,10 @@ int receive_login_account(char *buffer){
     return 0;
 }
 
-void set_destination_fd(int id, int fd){
+/**
+ * Set user fd
+ */
+void set_user_fd(int id, int fd){
     for(int i = 0; i < MAX_CLIENT; i++){
         if(login_client_account[i].id == id){
             login_client_account[i].fd = fd;
@@ -253,7 +282,10 @@ void set_destination_fd(int id, int fd){
     }
 }
 
-int get_destination_fd(int id){
+/**
+ * Get user fd
+ */
+int get_user_fd(int id){
     for(int i = 0; i < MAX_CLIENT; i++){
         if(login_client_account[i].id == id){
             return login_client_account[i].fd;
@@ -267,7 +299,7 @@ int get_destination_fd(int id){
     }
     return -1;
 }
-
+//=========================================================================================================================
 
 
 //===========================================File interaction functions====================================================
@@ -388,12 +420,10 @@ int main(){
     socket_addr.sin_port = htons(5000);
 
     if (bind(socket_fd, (struct sockaddr *)&socket_addr, sizeof(socket_addr)) < 0) {
-        //perror("bind failed");
         exit(1);
     }
 
     if (listen(socket_fd, MAX_CLIENT) < 0) {
-        //perror("listen failed");
         exit(1);
     }
 
@@ -423,9 +453,6 @@ void *client_accept(void *arg){
     while(1){
         int socket_client_fd = accept(socket_fd, NULL, NULL);
 
-        // count++;
-        // client_t *_client = socket_client_add(count, socket_client_fd);
-
         pthread_t thread;
         pthread_create(&thread, NULL, client_handle, (void *)socket_client_fd);
         pthread_detach(thread);
@@ -433,6 +460,9 @@ void *client_accept(void *arg){
     return NULL;
 }
 
+/**
+ * Handle messages received from client.
+ */
 void *client_handle(void *arg){
     int fd = (int)arg;
     msg_t buffer;
@@ -447,7 +477,7 @@ void *client_handle(void *arg){
         }
         
         if(buffer.cmd == SEND_MSG){
-            int destination_fd = get_destination_fd(buffer.receiver_id);
+            int destination_fd = get_user_fd(buffer.receiver_id);
             if(destination_fd >= 0){
                 if(destination_fd > 0){
                     if(write(destination_fd, (void *)&buffer, sizeof(buffer)) == -1){
@@ -479,7 +509,7 @@ void *client_handle(void *arg){
         else if(buffer.cmd == LOGIN){
             id = receive_login_account(buffer.payload);
             if(id > 0){
-                set_destination_fd(id, fd);
+                set_user_fd(id, fd);
                 send_msg_to_client(fd, 0, id, LOGIN_ACK, NULL);
             }
             else{
